@@ -184,9 +184,8 @@ class ScormXBlock(XBlock):
             else:
                 temporary_path = os.path.join(SCORM_ROOT, scorm_file.name)
                 temporary_zip = open(temporary_path, 'wb')
-                scorm_file.open()
-                temporary_zip.write(scorm_file.read())
-                temporary_zip.close()
+                with scorm_file.open('rb') as file:
+                    temporary_zip.write(file.read())
                 os.system('unzip {} -d {}'.format(temporary_path, path_to_file))
                 os.remove(temporary_path)
 
