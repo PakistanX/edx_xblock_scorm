@@ -3,14 +3,20 @@
 <div class="scormxblock_block">
     {% if scorm_file_path %}
 
-    {% if scorm_xblock.has_score %}
+    <!-- {% if scorm_xblock.has_score %}
     <p>
         (<span class="lesson_score">{{ scorm_xblock.format_lesson_score }}</span>/{{ scorm_xblock.weight }} {% trans "points" %})
         <span class="completion_status">{% trans completion_status %}</span>
     </p>
-    {% endif %}
+    {% endif %} -->
 
     <div class="js-scorm-block">
+        <iframe class="scorm_object"
+                src="{{ scorm_file_path }}"
+                width="{% if scorm_xblock.width %}{{ scorm_xblock.width }}{% else %}100%{% endif %}"
+                height="{{ scorm_xblock.height }}"
+        ></iframe>
+
         <div class="scorm_button">
             <button class="js-button-full-screen full-screen-on">
                 {% trans "Full screen" %}
@@ -19,12 +25,6 @@
                 {% trans "Exit full screen" %}
             </button>
         </div>
-
-        <iframe class="scorm_object"
-                src="{{ scorm_file_path }}"
-                width="{% if scorm_xblock.width %}{{ scorm_xblock.width }}{% else %}100%{% endif %}"
-                height="{{ scorm_xblock.height }}"
-        ></iframe>
      </div>
     {% endif %}
 

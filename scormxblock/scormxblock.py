@@ -279,6 +279,20 @@ class ScormXBlock(XBlock):
     def get_context_student(self):
         scorm_file_path = ''
         if self.scorm_file:
+            # Check whether SCORM file exists to serve to students
+            path_to_file = os.path.join(SCORM_ROOT, self.location.block_id)
+            path = self.scorm_file_meta['path']
+            if not os.path.exists(path_to_file) and default_storage.exists(path):
+                if not os.path.exists(SCORM_ROOT):
+                    os.mkdir(SCORM_ROOT)
+                with default_storage.open(path, 'rb') as file:
+                    scorm_file = file.read()
+                    temporary_path = os.path.join(SCORM_ROOT, self.scorm_file_meta['name'])
+                    temporary_zip = open(temporary_path, 'wb')
+                    temporary_zip.write(scorm_file)
+                    os.system('unzip {} -d {}'.format(temporary_path, path_to_file))
+                    os.remove(temporary_path)
+
             scheme = 'https' if settings.HTTPS == 'on' else 'http'
             scorm_file_path = '{}://{}{}'.format(
                 scheme,
