@@ -28,7 +28,6 @@ loader = ResourceLoader(__name__)
 log = logging.getLogger(__name__)
 
 SCORM_ROOT = os.path.join(settings.MEDIA_ROOT, 'scorm')
-SCORM_URL = os.path.join(settings.MEDIA_URL, 'scorm')
 
 
 @XBlock.needs('i18n')
@@ -162,23 +161,15 @@ class ScormXBlock(XBlock):
             self.scorm_file_meta['last_updated'] = timezone.now().strftime(DateTime.DATETIME_FORMAT)
 
             if default_storage.exists(path):
-                log.info('Removing previously uploaded "{}"'.format(path))
-                default_storage.delete(path)
+                return Response(json.dumps({'result': 'same file uploaded previously'}), content_type='application/json', charset="utf8")
 
             default_storage.save(path, File(scorm_file))
             self.scorm_file_meta['size'] = default_storage.size(path)
             log.info('"{}" file stored at "{}"'.format(scorm_file, path))
 
-            # Check whether SCORM_ROOT exists
             if not os.path.exists(SCORM_ROOT):
                 os.mkdir(SCORM_ROOT)
-
-            # Now unpack it into SCORM_ROOT to serve to students later
             path_to_file = os.path.join(SCORM_ROOT, self.location.block_id)
-
-            if os.path.exists(path_to_file):
-                shutil.rmtree(path_to_file)
-
             if hasattr(scorm_file, 'temporary_file_path'):
                 os.system('unzip {} -d {}'.format(scorm_file.temporary_file_path(), path_to_file))
             else:
@@ -189,7 +180,16 @@ class ScormXBlock(XBlock):
                 os.system('unzip {} -d {}'.format(temporary_path, path_to_file))
                 os.remove(temporary_path)
 
-            self.set_fields_xblock(path_to_file)
+            for root, dirs, files in os.walk(path_to_file):
+                for file in files:
+                    local_file_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(local_file_path, path_to_file)
+                    with open(local_file_path, 'rb') as source_file:
+                        default_storage.save("{}/{}".format(path[:-4], relative_path), File(source_file))
+
+            shutil.rmtree(path_to_file)
+
+            self.set_fields_xblock(path[:-4])
 
         return Response(json.dumps({'result': 'success'}), content_type='application/json', charset="utf8")
 
@@ -279,26 +279,15 @@ class ScormXBlock(XBlock):
     def get_context_student(self):
         scorm_file_path = ''
         if self.scorm_file:
-            # Check whether SCORM file exists to serve to students
-            path_to_file = os.path.join(SCORM_ROOT, self.location.block_id)
-            path = self.scorm_file_meta['path']
-            if not os.path.exists(path_to_file) and default_storage.exists(path):
-                if not os.path.exists(SCORM_ROOT):
-                    os.mkdir(SCORM_ROOT)
-                with default_storage.open(path, 'rb') as file:
-                    scorm_file = file.read()
-                    temporary_path = os.path.join(SCORM_ROOT, self.scorm_file_meta['name'])
-                    temporary_zip = open(temporary_path, 'wb')
-                    temporary_zip.write(scorm_file)
-                    os.system('unzip {} -d {}'.format(temporary_path, path_to_file))
-                    os.remove(temporary_path)
-
-            scheme = 'https' if settings.HTTPS == 'on' else 'http'
-            scorm_file_path = '{}://{}{}'.format(
-                scheme,
-                configuration_helpers.get_value('site_domain', settings.LMS_BASE),
-                self.scorm_file
-            )
+            if settings.DEBUG:
+                scorm_file_path = '{}://{}{}{}'.format(
+                    'https' if settings.HTTPS == 'on' else 'http',
+                    configuration_helpers.get_value('site_domain', settings.LMS_BASE),
+                    settings.MEDIA_URL,
+                    self.scorm_file
+                )
+            else:
+                scorm_file_path = default_storage.url(self.scorm_file)
 
         return {
             'scorm_file_path': scorm_file_path,
@@ -339,7 +328,7 @@ class ScormXBlock(XBlock):
             else:
                 self.version_scorm = 'SCORM_12'
 
-        self.scorm_file = os.path.join(SCORM_URL, '{}/{}'.format(self.location.block_id, self.path_index_page))
+        self.scorm_file = '{}/{}'.format(path_to_file, self.path_index_page)
 
     def get_completion_status(self):
         completion_status = self.lesson_status
@@ -352,7 +341,7 @@ class ScormXBlock(XBlock):
         Get file path of storage.
         """
         path = (
-            '{loc.org}/{loc.course}/{loc.block_type}/{loc.block_id}'
+            'scorm/{loc.org}/{loc.course}/{loc.block_id}'
             '/{sha1}{ext}'.format(
                 loc=self.location,
                 sha1=self.scorm_file_meta['sha1'],
