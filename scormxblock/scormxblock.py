@@ -3,6 +3,7 @@ import hashlib
 import re
 import os
 import logging
+from urllib.parse import urlparse
 import pkg_resources
 import shutil
 import xml.etree.ElementTree as ET
@@ -287,7 +288,11 @@ class ScormXBlock(XBlock):
                     self.scorm_file
                 )
             else:
-                scorm_file_path = default_storage.url(self.scorm_file)
+                scorm_file_path = '{}://{}s3-proxy{}'.format(
+                    'https' if settings.HTTPS == 'on' else 'http',
+                    configuration_helpers.get_value('site_domain', settings.LMS_BASE),
+                    urlparse(default_storage.url(self.scorm_file)).path
+                )
 
         return {
             'scorm_file_path': scorm_file_path,
