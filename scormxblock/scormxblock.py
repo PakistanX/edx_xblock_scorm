@@ -288,10 +288,11 @@ class ScormXBlock(XBlock):
                     self.scorm_file
                 )
             else:
-                scorm_file_path = '{}://{}s3-proxy{}'.format(
+                s3_url_path = default_storage.url(self.scorm_file)
+                scorm_file_path = '{}://{}/s3-proxy{}'.format(
                     'https' if settings.HTTPS == 'on' else 'http',
                     configuration_helpers.get_value('site_domain', settings.LMS_BASE),
-                    urlparse(default_storage.url(self.scorm_file)).path
+                    urlparse(s3_url_path).path
                 )
 
         return {
