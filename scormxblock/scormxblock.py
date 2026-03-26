@@ -164,10 +164,6 @@ class ScormXBlock(XBlock):
             if default_storage.exists(path):
                 return Response(json.dumps({'result': 'same file uploaded previously'}), content_type='application/json', charset="utf8")
 
-            default_storage.save(path, File(scorm_file))
-            self.scorm_file_meta['size'] = default_storage.size(path)
-            log.info('"{}" file stored at "{}"'.format(scorm_file, path))
-
             if not os.path.exists(SCORM_ROOT):
                 os.mkdir(SCORM_ROOT)
             path_to_file = os.path.join(SCORM_ROOT, self.location.block_id)
@@ -175,11 +171,15 @@ class ScormXBlock(XBlock):
                 os.system('unzip {} -d {}'.format(scorm_file.temporary_file_path(), path_to_file))
             else:
                 temporary_path = os.path.join(SCORM_ROOT, scorm_file.name)
-                temporary_zip = open(temporary_path, 'wb')
-                with scorm_file.open('rb') as file:
-                    temporary_zip.write(file.read())
+                with open(temporary_path, 'wb') as temporary_zip:
+                    temporary_zip.write(scorm_file.read())
                 os.system('unzip {} -d {}'.format(temporary_path, path_to_file))
                 os.remove(temporary_path)
+
+            scorm_file.seek(0)
+            default_storage.save(path, File(scorm_file))
+            self.scorm_file_meta['size'] = default_storage.size(path)
+            log.info('"{}" file stored at "{}"'.format(scorm_file, path))
 
             for root, dirs, files in os.walk(path_to_file):
                 for file in files:
