@@ -22,13 +22,19 @@ def package_data(pkg, roots):
 
 setup(
     name='scormxblock-xblock',
-    version='0.5',
-    description='scormxblock XBlock',   # TODO: write a better description.
+    # ilmX fork for Open edX Verawood (Python 3.12, Django 5.2, XBlock 6)
+    version='1.0.0+ilmx',
+    description='SCORM XBlock (ilmX fork, block type "scormxblock")',
     packages=[
         'scormxblock',
     ],
+    python_requires='>=3.12',
     install_requires=[
-        'XBlock',
+        'XBlock>=2.0',
+        'web-fragments',
+        'Django>=4.2',
+        'WebOb',
+        'defusedxml',
     ],
     entry_points={
         'xblock.v1': [
@@ -39,5 +45,8 @@ setup(
     license="Apache",
     classifiers=[
         "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python :: 3.12",
+        "Framework :: Django :: 4.2",
+        "Framework :: Django :: 5.2",
     ]
 )

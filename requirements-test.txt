@@ -1,0 +1,9 @@
+# Test requirements for the ilmX SCORM XBlock (Python 3.12)
+Django>=5.2,<5.3
+XBlock[django]>=6.1,<7
+web-fragments
+defusedxml
+mock
+ddt
+pytest
+pytest-django
